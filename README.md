@@ -1,8 +1,9 @@
 # CTG_Assg_Group1
 ### A repository to store files for CTG Assignment
-### Obvious warning that implementations of these files should NOT be used in prod
+Obvious warning that implementations of these files should NOT be used in prod
 
-## To install make sure you have the following packages
+## Before running the programs
+### Make sure you have the following packages
 - hashlib
 - re
 - sys
@@ -13,9 +14,9 @@
 ### If you do not have any of these packages, run:
 `pip install <package_name>`
 
-
-## railfenceECCkeygen
-### Generates a public-private key pair with help from the tinyec library
+## File descriptions / documentation
+### railfenceECCkeygen
+#### Generates a public-private key pair with help from the tinyec library
 ```python
 import hashlib
 import re

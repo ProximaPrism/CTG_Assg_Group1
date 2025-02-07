@@ -64,16 +64,18 @@ for i in range(len(text)):
     else:
         row -= 1
 
-result = []
+exponent = []
+hash = ""
 for i in range(row_key):
     for j in range(len(text)):
         if rail[i][j] != "\n":
-            result.append(str(ord(rail[i][j])))
+            exponent.append(str(ord(rail[i][j])))
+            hash.join(rail[i][j])
 
 # result is hashed using SHA256 and returned into the key generator
-
-result = int("".join(result))
-hashed_result = int(hashlib.sha256(str(result).encode()).hexdigest(), 16)
+# exponent is reversed and converted to an integer for key generation
+exponent = int("".join(exponent[::-1]))
+hashed_result = int(hashlib.sha256(hash.encode()).hexdigest(), 16)
 
 # -------------------------------------------------------------------
 # ECC key pair generator based on chosen curve
@@ -82,7 +84,6 @@ curve_type = sys.argv[3]
 
 curve = registry.get_curve(curve_type)
 point = secrets.randbelow(curve.field.n) * curve.g
-print(curve.g)
 
 print(Fore.LIGHTCYAN_EX + f"\nCurve equation: ({curve_type})")
 print(Fore.RESET, end="")
@@ -102,7 +103,7 @@ print(f"iY: {point.y}")
 
 print(Fore.LIGHTRED_EX, "\nPrivate key:")
 print(Fore.RESET, end="")
-private_key = hashed_result % secrets.randbelow(curve.field.n)
+private_key = (hashed_result ^ exponent) % secrets.randbelow(curve.field.n)
 print(f"d: {private_key}")
 
 public_point = private_key * point

@@ -4,59 +4,41 @@ import hashlib
 import re
 import sys
 from tinyec import registry
+from tinyec.ec import Curve, Point
 import secrets
 from colorama import Fore
 
-text = sys.argv[1]
-
+text: str = sys.argv[1]
+row_key: int = int(sys.argv[2])
+curve_type: str = sys.argv[3]
 # input validation
 
-try:
-    empty = sys.argv[1][0] == ""
-    if empty:
-        raise IndexError("No valid message was found")
-except IndexError:
-    print("No valid message was found")
-    exit(1)
-
-try:
-    empty = sys.argv[2][0] == ""
-    if empty:
-        raise IndexError("No rail fence key input was found")
-except IndexError:
-    print("No rail fence cipher key input was found")
-    exit(1)
-
-try:
-    empty = sys.argv[3][0] == ""
-    if empty:
-        raise IndexError("No valid ECC curve type input was found")
-except IndexError:
-    print("No valid ECC curve type input was found")
-    print("---------------------------------------")
-    print(Fore.LIGHTCYAN_EX + "Valid curve types:")
-    print(Fore.RESET + "--- NIST curves -----------")
-    print("secp[192/224/256/384/521]r1")
-    print("secp256k1")
-    print()
-    print("--- Brainpool curves --------------------")
-    print("brainpoolP[160/192/224/256/320/384/512]r1")
-    exit(1)
+for i in [text, str(row_key), curve_type]:
+    if len(i) == 0:
+        print("One or more inputs was found to be missing")
+        print("---------------------------------------")
+        print(Fore.LIGHTCYAN_EX + "Valid curve types:")
+        print(Fore.RESET + "--- NIST curves -----------")
+        print("secp[192/224/256/384/521]r1")
+        print("secp256k1")
+        print()
+        print("--- Brainpool curves --------------------")
+        print("brainpoolP[160/192/224/256/320/384/512]r1")
+        exit(1)
 
 # -------------------------------------------------------------------
-# Rail fence cipher used as a diffusion layer
+# rail fence cipher used as a diffusion layer
 
-row_key = int(sys.argv[2])
-rail = [["\n" for i in range(len(text))] for j in range(row_key)]
+rail_fence = [["\n" for _ in range(len(text))] for _ in range(row_key)]
 
-direction_below = False
+direction_below: bool = False
 row, col = 0, 0
 
 for i in range(len(text)):
     if (row == 0) or (row == row_key - 1):
         direction_below = not direction_below
 
-    rail[row][col] = text[i]
+    rail_fence[row][col] = text[i]
     col += 1
 
     if direction_below:
@@ -64,49 +46,54 @@ for i in range(len(text)):
     else:
         row -= 1
 
-exponent = []
-hash = ""
+ascii_code: list[str] = []
+hash_str: str = ""
 for i in range(row_key):
     for j in range(len(text)):
-        if rail[i][j] != "\n":
-            exponent.append(str(ord(rail[i][j])))
-            hash.join(rail[i][j])
+        if rail_fence[i][j] != "\n":
+            ascii_code.append(str(ord(rail_fence[i][j])))
+            hash_str.join(rail_fence[i][j])
 
 # result is hashed using SHA256 and returned into the key generator
-# exponent is reversed and converted to an integer for key generation
-exponent = int("".join(exponent[::-1]))
-hashed_result = int(hashlib.sha256(hash.encode()).hexdigest(), 16)
+bit_size = [int(match) for match in re.findall(r"\d{3}", curve_type)]
+
+# only going to be one match
+hashed_result: int = int(hashlib.sha256(hash_str.encode()).hexdigest(), 16)
 
 # -------------------------------------------------------------------
 # ECC key pair generator based on chosen curve
 
-curve_type = sys.argv[3]
+curve: Curve = registry.get_curve(curve_type)
+# generator point is influenced by rail fence hash and bit size inputs
 
-curve = registry.get_curve(curve_type)
-point = secrets.randbelow(curve.field.n) * curve.g
+gen_point: Point = curve.g * (hashed_result % secrets.randbits(bit_size[0]))
 
 print(Fore.LIGHTCYAN_EX + f"\nCurve equation: ({curve_type})")
 print(Fore.RESET, end="")
-print(re.search(r"y\^2 = x\^3[^(]*", str(point)).group(0))
+print(re.search(r"y\^2 = x\^3[^(]*", str(gen_point)).group(0))
 
 print(Fore.LIGHTCYAN_EX + "\nField size (modulo divisor):")
 print(Fore.RESET, end="")
 print(
-    re.search(r"\(mod [0-9]+\)", str(point)).group(0).strip("()").removeprefix("mod ")
+    re.search(r"\(mod [0-9]+\)", str(gen_point))
+    .group(0)
+    .strip("()")
+    .removeprefix("mod ")
 )
 
 print(Fore.LIGHTCYAN_EX + "\nInitial coordinates:")
 print(Fore.RESET, end="")
 
-print(f"iX: {point.x}")
-print(f"iY: {point.y}")
+print(f"iX: {gen_point.x}")
+print(f"iY: {gen_point.y}")
 
 print(Fore.LIGHTRED_EX, "\nPrivate key:")
 print(Fore.RESET, end="")
-private_key = (hashed_result ^ exponent) % secrets.randbelow(curve.field.n)
+
+private_key = secrets.randbelow(curve.field.n - 1) + 1
 print(f"d: {private_key}")
 
-public_point = private_key * point
+public_point: Point = private_key * gen_point
 
 print(Fore.LIGHTBLUE_EX + "\nPublic coordinates:")
 print(Fore.RESET, end="")

@@ -126,6 +126,6 @@ print(f"pY: {public_point.y}")
 ```
 - Rail fence is used as a diffusion layer, creating an exponent, `e` and a hash, `h` from SHA256 
 - Hash `h` is passed into the key generator (ECC) to be used in the private key / public key points
-- An initial point, `(iX, iY)` is created based on a random integer less than n (private curve multiplier), `n` multiplied by the generator point for the curve, `g`
-- The private key multiplier, `d` is created from: `h^e (mod n)`
+- An initial point, `(iX, iY)` is created based on a random integer `r` less than n (private curve multiplier), multiplied by the generator point for the curve, `g`
+- The private key multiplier, `d` is created from: `h^e (mod r)`
 - Public key points `(pX, pY)` are generated from: `(iX, iY) * d`

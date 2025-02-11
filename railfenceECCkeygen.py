@@ -8,12 +8,8 @@ from tinyec.ec import Curve, Point
 import secrets
 from colorama import Fore
 
-text: str = sys.argv[1]
-row_key: int = int(sys.argv[2])
-curve_type: str = sys.argv[3]
 # input validation
-
-for i in [text, str(row_key), curve_type]:
+for i in [sys.argv[1], sys.argv[2], sys.argv[3]]:
     if len(i) == 0:
         print("One or more inputs was found to be missing")
         print("---------------------------------------")
@@ -25,6 +21,10 @@ for i in [text, str(row_key), curve_type]:
         print("--- Brainpool curves --------------------")
         print("brainpoolP[160/192/224/256/320/384/512]r1")
         exit(1)
+
+text: str = sys.argv[1]
+row_key: int = int(sys.argv[2])
+curve_type: str = sys.argv[3]
 
 # -------------------------------------------------------------------
 # rail fence cipher used as a diffusion layer

@@ -8,23 +8,34 @@ from tinyec.ec import Curve, Point
 import secrets
 from colorama import Fore
 
+
 # input validation
+def invalid_input():
+    print("One or more inputs was found to be missing")
+    print("---------------------------------------")
+    print(Fore.LIGHTCYAN_EX + "Valid curve types:")
+    print(Fore.RESET + "--- NIST curves -----------")
+    print("secp[192/224/256/384/521]r1")
+    print("secp256k1")
+    print()
+    print("--- Brainpool curves --------------------")
+    print("brainpoolP[160/192/224/256/320/384/512]r1")
+    exit(1)
+
+
+if len(sys.argv) < 4:
+    invalid_input()
+
 for i in [sys.argv[1], sys.argv[2], sys.argv[3]]:
     if len(i) == 0:
-        print("One or more inputs was found to be missing")
-        print("---------------------------------------")
-        print(Fore.LIGHTCYAN_EX + "Valid curve types:")
-        print(Fore.RESET + "--- NIST curves -----------")
-        print("secp[192/224/256/384/521]r1")
-        print("secp256k1")
-        print()
-        print("--- Brainpool curves --------------------")
-        print("brainpoolP[160/192/224/256/320/384/512]r1")
-        exit(1)
+        invalid_input()
 
-text: str = sys.argv[1]
-row_key: int = int(sys.argv[2])
-curve_type: str = sys.argv[3]
+try:
+    text: str = sys.argv[1]
+    row_key: int = int(sys.argv[2])
+    curve_type: str = sys.argv[3]
+except ValueError:
+    invalid_input()
 
 # -------------------------------------------------------------------
 # rail fence cipher used as a diffusion layer
@@ -62,10 +73,12 @@ hashed_result: int = int(hashlib.sha256(hash_str.encode()).hexdigest(), 16)
 
 # -------------------------------------------------------------------
 # ECC key pair generator based on chosen curve
+try:
+    curve: Curve = registry.get_curve(curve_type)
+except ValueError:
+    invalid_input()
 
-curve: Curve = registry.get_curve(curve_type)
 # generator point is influenced by rail fence hash and bit size inputs
-
 gen_point: Point = curve.g * (hashed_result % secrets.randbits(bit_size[0]))
 
 print(Fore.LIGHTCYAN_EX + f"\nCurve equation: ({curve_type})")
